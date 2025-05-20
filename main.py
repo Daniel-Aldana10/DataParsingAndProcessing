@@ -78,6 +78,18 @@ def main():
     equity_analysis = analyzer.analyze_salary_equity(group_col='gender')
     print(equity_analysis)
 
+    # Education-Salary relationship analysis
+    print("\nEducation-Salary relationship analysis:")
+    education_salary_analysis = analyzer.analyze_education_salary_relationship()
+    print("Education levels found:", list(education_salary_analysis['education_mapping'].keys()) if 'education_mapping' in education_salary_analysis else "N/A")
+    if 'correlation' in education_salary_analysis:
+        corr = education_salary_analysis['correlation']
+        print(f"Correlation: {corr['correlation']:.4f} (p-value: {corr['p_value']:.4f})")
+    if 'anova_test' in education_salary_analysis:
+        anova = education_salary_analysis['anova_test']
+        print(f"ANOVA F-statistic: {anova['f_statistic']:.4f} (p-value: {anova['p_value']:.4f})")
+        print(f"Significant difference: {'Yes' if anova['significant'] else 'No'}")
+
     # Employee segmentation
     print("\nEmployee segmentation:")
     segments = analyzer.segment_employees(n_clusters=4)
@@ -86,7 +98,7 @@ def main():
     # Step 3: Create visualizations
     print("\n3. Generating visualizations...")
     visualizer = EmployeeDataVisualizer(clean_df, plots_dir)
-
+    
     # Create plots (without showing them, only saving them)
     print("   - Creating salary distribution plot...")
     visualizer.plot_salary_distribution(show=False)
@@ -102,10 +114,10 @@ def main():
 
     print("   - Creating gender by department analysis plot...")
     visualizer.plot_gender_department_analysis(show=False)
-    """
+    
     print("   - Creating age distribution by gender plot...")
-    visualizer.plot_age_distribution_by_gender(show=False)
-    """
+    visualizer.plot_age_distribution_simple(show=False)
+    
     print("   - Creating correlation matrix plot...")
     visualizer.plot_correlation_matrix(show=False)
 
@@ -114,6 +126,9 @@ def main():
 
     print("   - Creating education by department plot...")
     visualizer.plot_education_by_department(show=False)
+    
+    print("   - Creating education-salary analysis plot...")
+    visualizer.plot_education_salary_simple(show=False)
 
     print("\n¡Analysis completed successfully!")
     print(f"The visualizations have been saved in the directory: {plots_dir}")

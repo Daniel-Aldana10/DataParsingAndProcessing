@@ -315,6 +315,50 @@ class EmployeeDataVisualizer:
         
         return fig
 
+    def plot_age_distribution_simple(self, save=True, show=True):
+
+        if self.data is None:
+            raise ValueError("No data has been set. Use set_data() first.")
+        
+        if 'age' not in self.data.columns or 'gender' not in self.data.columns:
+            missing = []
+            if 'age' not in self.data.columns:
+                missing.append('age')
+            if 'gender' not in self.data.columns:
+                missing.append('gender')
+            raise ValueError(f"Data does not contain columns: {', '.join(missing)}")
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Create boxplot instead of violin+swarm (much faster)
+        sns.boxplot(data=self.data, x='gender', y='age', ax=ax)
+        
+        # Configure the plot
+        ax.set_title('Age Distribution by Gender', fontsize=15)
+        ax.set_xlabel('Gender', fontsize=12)
+        ax.set_ylabel('Age', fontsize=12)
+        
+        # Add basic statistics
+        stats_by_gender = self.data.groupby('gender')['age'].agg(['mean', 'median', 'count'])
+        
+        # Add text with statistics
+        y_pos = self.data['age'].max() * 0.95
+        for i, gender in enumerate(stats_by_gender.index):
+            stats = stats_by_gender.loc[gender]
+            ax.text(i, y_pos, 
+                   f"Mean: {stats['mean']:.1f}\nMedian: {stats['median']:.1f}\nCount: {stats['count']}",
+                   ha='center', va='top', 
+                   bbox=dict(facecolor='white', alpha=0.8))
+        
+
+        if save:
+            fig.savefig(self.output_dir / 'age_distribution_by_gender.png', dpi=150, bbox_inches='tight')
+        
+        if not show:
+            plt.close(fig)
+        
+        return fig
+
     def plot_correlation_matrix(self, save=True, show=True):
        
         if self.data is None:
@@ -418,6 +462,83 @@ class EmployeeDataVisualizer:
         
         if save:
             fig.savefig(self.output_dir / 'education_by_department.png', dpi=300, bbox_inches='tight')
+        
+        if not show:
+            plt.close(fig)
+        
+        return fig
+        
+    def plot_education_salary_simple(self, save=True, show=True):
+
+        if self.data is None:
+            raise ValueError("No data has been set. Use set_data() first.")
+        
+        if 'education' not in self.data.columns or 'base_salary' not in self.data.columns:
+            missing = []
+            if 'education' not in self.data.columns:
+                missing.append('education')
+            if 'base_salary' not in self.data.columns:
+                missing.append('base_salary')
+            raise ValueError(f"Data does not contain columns: {', '.join(missing)}")
+        
+        # Create figure with two subplots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+        
+        # 1. Boxplot of salary by education level (without swarmplot)
+        try:
+            education_order = ['High School', 'Associate', 'Bachelor', 'Master', 'PhD']
+            edu_levels = self.data['education'].unique()
+            education_order = [level for level in education_order if level in edu_levels]
+            if len(education_order) != len(edu_levels):
+                education_order = sorted(edu_levels)
+        except:
+            education_order = self.data['education'].unique()
+        
+        # Simple boxplot without individual points
+        sns.boxplot(data=self.data, x='education', y='base_salary', order=education_order, ax=ax1)
+        
+        # Configure the boxplot
+        ax1.set_title('Salary Distribution by Education Level', fontsize=15)
+        ax1.set_xlabel('Education Level', fontsize=12)
+        ax1.set_ylabel('Base Salary ($)', fontsize=12)
+        ax1.tick_params(axis='x', rotation=45)
+        
+        # 2. Bar plot of average salary by education level
+        # Use a simpler aggregation approach
+        edu_salary = self.data.groupby('education')['base_salary'].agg(['mean', 'count'])
+        edu_salary = edu_salary.sort_values('mean', ascending=False)
+        
+        # Create bar plot
+        ax2.bar(edu_salary.index, edu_salary['mean'], color='skyblue')
+        
+        # Configure the bar plot
+        ax2.set_title('Average Salary by Education Level', fontsize=15)
+        ax2.set_xlabel('Education Level', fontsize=12)
+        ax2.set_ylabel('Average Salary ($)', fontsize=12)
+        ax2.tick_params(axis='x', rotation=45)
+        
+        # Add correlation if we can calculate it
+        try:
+            # Create a simple education level mapping (1 to n)
+            edu_mapping = {level: i+1 for i, level in enumerate(sorted(self.data['education'].unique()))}
+            temp_df = self.data.copy()
+            temp_df['edu_numeric'] = temp_df['education'].map(edu_mapping)
+            
+            # Calculate correlation
+            corr = temp_df['edu_numeric'].corr(temp_df['base_salary'])
+            corr_text = f'Correlation: {corr:.2f}'
+            
+            # Add text to the second subplot
+            ax2.text(0.05, 0.95, corr_text, transform=ax2.transAxes, 
+                    fontsize=12, bbox=dict(facecolor='white', alpha=0.5))
+        except:
+            pass
+        
+        plt.tight_layout()
+        
+        # Usar DPI más bajo para acelerar el guardado
+        if save:
+            fig.savefig(self.output_dir / 'education_salary_analysis.png', dpi=150, bbox_inches='tight')
         
         if not show:
             plt.close(fig)

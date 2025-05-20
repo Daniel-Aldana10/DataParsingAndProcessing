@@ -659,3 +659,94 @@ class EmployeeDataAnalyzer:
         result['performance_correlations'] = perf_correlations
         
         return result
+    
+    def analyze_education_salary_relationship(self):
+        """
+        Performs a comprehensive analysis of the relationship between education level and salary.
+        
+        Returns:
+            dict: A dictionary with the results of the analysis, including:
+                - statistics: Basic statistics of salary by education level
+                - anova_test: Results of ANOVA test if there are more than 2 education levels
+                - correlation: Results of correlation if education level can be mapped to numeric values
+        """
+        if self.data is None:
+            raise ValueError("No data has been set. Use set_data() first.")
+        
+        if 'education' not in self.data.columns:
+            raise ValueError("Data does not contain 'education' column")
+        
+        if 'base_salary' not in self.data.columns:
+            raise ValueError("Data does not contain 'base_salary' column")
+        
+        results = {}
+        
+        # Get basic statistics by education level
+        salary_factors = self.analyze_salary_factors()
+        if 'salary_by_education' in salary_factors:
+            results['statistics'] = salary_factors['salary_by_education']
+        
+        # ANOVA test for significant differences between levels
+        education_levels = self.data['education'].unique()
+        if len(education_levels) >= 3:
+            try:
+                anova_results = self.run_statistical_tests('education', 'base_salary', test_type='anova')
+                results['anova_test'] = anova_results
+            except Exception as e:
+                results['anova_test_error'] = str(e)
+        
+        # Correlation analysis if we can map education to numeric values
+        try:
+            # Common education level mapping
+            education_mapping = {
+                'High School': 1, 'Secondary': 1, 'Secundaria': 1,
+                'Associate': 2, 'Tecnico': 2, 'Technical': 2,
+                'Bachelor': 3, 'Licenciatura': 3, 'Universitario': 3, 'College': 3,
+                'Master': 4, 'Maestria': 4, 'Masters': 4,
+                'PhD': 5, 'Doctorate': 5, 'Doctorado': 5
+            }
+            
+            # Automatically detect levels and create custom mapping if needed
+            detected_levels = self.data['education'].unique()
+            customized_mapping = {}
+            
+            if not all(level in education_mapping for level in detected_levels):
+                # If not all levels are in the predefined mapping, create a custom one
+                sorted_levels = sorted(detected_levels, key=lambda x: str(x).lower())
+                for i, level in enumerate(sorted_levels):
+                    customized_mapping[level] = i + 1
+                
+                # Use the custom mapping
+                education_mapping = customized_mapping
+            
+            # Create temporary copy with numeric mapping
+            temp_df = self.data.copy()
+            temp_df['education_numeric'] = temp_df['education'].map(education_mapping)
+            
+            # Set up temporary analyzer
+            temp_analyzer = EmployeeDataAnalyzer(temp_df)
+            
+            # Perform correlation analysis
+            corr_results = temp_analyzer.run_statistical_tests('education_numeric', 'base_salary', test_type='correlation')
+            results['correlation'] = corr_results
+            results['education_mapping'] = education_mapping
+        except Exception as e:
+            results['correlation_error'] = str(e)
+        
+        # Add comparative descriptive statistics
+        try:
+            results['comparative_stats'] = {}
+            for level in self.data['education'].unique():
+                level_salary = self.data[self.data['education'] == level]['base_salary']
+                results['comparative_stats'][level] = {
+                    'mean': level_salary.mean(),
+                    'median': level_salary.median(),
+                    'std': level_salary.std(),
+                    'min': level_salary.min(),
+                    'max': level_salary.max(),
+                    'count': len(level_salary)
+                }
+        except Exception as e:
+            results['comparative_stats_error'] = str(e)
+        
+        return results

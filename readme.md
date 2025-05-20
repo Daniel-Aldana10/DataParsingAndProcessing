@@ -76,6 +76,16 @@ This project provides a comprehensive set of tools for analyzing and visualizing
 - Relationship between education and department type
 - Professional development opportunities
 
+### 10. Education-Salary Relationship Analysis
+![Education-Salary Analysis](plots/education_salary_analysis.png)
+
+**Conclusions to complete:**
+- Impact of education level on salary distribution
+- Correlation strength between education and compensation
+- Salary differences between educational levels
+- Return on investment for higher education
+- Potential areas for targeted compensation adjustments
+
 ## Code Usage
 
 To generate these analyses, use the classes provided in the project:
